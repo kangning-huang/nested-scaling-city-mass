@@ -33,6 +33,7 @@ jobs:
       - name: Expand data archives into dist
         run: |
           cd dist/webdata
+          rm -f .gitignore
           for z in *.zip; do
             [ -f "$z" ] || continue
             base="${z%.zip}"
