@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { DATA_BASE } from '../config'
+import { useTheme } from './useTheme.js'
 
 const COLORS = {
   point: 'rgba(141, 160, 203, 0.03)',
@@ -8,7 +9,7 @@ const COLORS = {
   band: 'rgba(191, 0, 0, 0.15)',
 }
 
-const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
+const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered, chartColors }) => {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -23,8 +24,10 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     ctx.scale(dpr, dpr)
     ctx.clearRect(0, 0, W, H)
 
+    const cc = chartColors || {}
+
     if (!data || !data.length) {
-      ctx.fillStyle = '#9a948e'
+      ctx.fillStyle = cc.emptyText || '#9a948e'
       ctx.font = '12px DM Sans, system-ui'
       ctx.textAlign = 'center'
       ctx.fillText('No data available', W / 2, H / 2)
@@ -42,7 +45,7 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     const sy = (y) => H - pad.bottom - ((y - yMin) / (yMax - yMin || 1)) * ph
 
     // Axis lines
-    ctx.strokeStyle = '#ebe7e1'
+    ctx.strokeStyle = cc.axis || '#ebe7e1'
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(pad.left, pad.top)
@@ -51,14 +54,14 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     ctx.stroke()
 
     // Tick labels
-    ctx.fillStyle = '#9a948e'
+    ctx.fillStyle = cc.tickText || '#9a948e'
     ctx.font = '10px DM Sans, system-ui'
     ctx.textAlign = 'center'
     const xTicks = centered ? niceRangeCentered(xMin, xMax, 5) : niceRange(xMin, xMax, 5)
     xTicks.forEach((v) => {
       const x = sx(v)
       ctx.fillText(centered ? v.toFixed(1) : `10${superscript(v)}`, x, H - pad.bottom + 16)
-      ctx.strokeStyle = '#f0ede9'
+      ctx.strokeStyle = cc.grid || '#f0ede9'
       ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke()
     })
     ctx.textAlign = 'right'
@@ -66,13 +69,13 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     yTicks.forEach((v) => {
       const y = sy(v)
       ctx.fillText(centered ? v.toFixed(1) : `10${superscript(v)}`, pad.left - 6, y + 3)
-      ctx.strokeStyle = '#f0ede9'
+      ctx.strokeStyle = cc.grid || '#f0ede9'
       ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke()
     })
 
     // Zero lines for centered view
     if (centered) {
-      ctx.strokeStyle = '#d0cdc8'
+      ctx.strokeStyle = cc.zeroLine || '#d0cdc8'
       ctx.lineWidth = 1
       ctx.setLineDash([4, 3])
       if (xMin < 0 && xMax > 0) {
@@ -87,7 +90,7 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     }
 
     // Axis labels
-    ctx.fillStyle = '#6b6560'
+    ctx.fillStyle = cc.labelText || '#6b6560'
     ctx.font = '10px DM Sans, system-ui'
     ctx.textAlign = 'center'
     ctx.fillText(xLabel, pad.left + pw / 2, H - 2)
@@ -147,7 +150,7 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
       ctx.lineTo(sx(L[1].x), sy(L[1].y))
       ctx.stroke()
     }
-  }, [data, reg, mode, xKey, yKey, xLabel, yLabel, centered])
+  }, [data, reg, mode, xKey, yKey, xLabel, yLabel, centered, chartColors])
 
   return (
     <div className="chart-wrap">
@@ -160,6 +163,7 @@ const NeighborhoodPanel = ({ scope, cityName, countryName }) => {
   const [data, setData] = useState([])
   const [reg, setReg] = useState(null)
   const [mode, setMode] = useState('density')
+  const { chartColors } = useTheme()
 
   // Global/Country: show de-centered; City: show original
   const isCentered = scope.level !== 'city'
@@ -225,7 +229,7 @@ const NeighborhoodPanel = ({ scope, cityName, countryName }) => {
           </div>
         )}
       </div>
-      <Scatter data={data} reg={reg} mode={mode} xKey={xKey} yKey={yKey} xLabel={xLabel} yLabel={yLabel} centered={isCentered} />
+      <Scatter data={data} reg={reg} mode={mode} xKey={xKey} yKey={yKey} xLabel={xLabel} yLabel={yLabel} centered={isCentered} chartColors={chartColors} />
       <div className="stat-row">
         {reg && isFinite(reg.slope) && (
           <>

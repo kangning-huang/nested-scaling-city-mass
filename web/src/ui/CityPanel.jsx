@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useMemo } from 'react'
+import Fuse from 'fuse.js'
 import { DATA_BASE } from '../config'
+import { useTheme } from './useTheme.js'
 
 const COLORS = {
   point: 'rgba(141, 160, 203, 0.5)',
@@ -8,7 +10,7 @@ const COLORS = {
   band: 'rgba(252, 141, 98, 0.18)',
 }
 
-const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
+const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered, chartColors }) => {
   const canvasRef = useRef(null)
 
   useEffect(() => {
@@ -23,8 +25,10 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     ctx.scale(dpr, dpr)
     ctx.clearRect(0, 0, W, H)
 
+    const cc = chartColors || {}
+
     if (!data || !data.length) {
-      ctx.fillStyle = '#9a948e'
+      ctx.fillStyle = cc.emptyText || '#9a948e'
       ctx.font = '12px DM Sans, system-ui'
       ctx.textAlign = 'center'
       ctx.fillText('No data available', W / 2, H / 2)
@@ -42,7 +46,7 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     const sy = (y) => H - pad.bottom - ((y - yMin) / (yMax - yMin || 1)) * ph
 
     // Axis lines
-    ctx.strokeStyle = '#ebe7e1'
+    ctx.strokeStyle = cc.axis || '#ebe7e1'
     ctx.lineWidth = 1
     ctx.beginPath()
     ctx.moveTo(pad.left, pad.top)
@@ -51,14 +55,14 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     ctx.stroke()
 
     // Tick labels
-    ctx.fillStyle = '#9a948e'
+    ctx.fillStyle = cc.tickText || '#9a948e'
     ctx.font = '10px DM Sans, system-ui'
     ctx.textAlign = 'center'
     const xTicks = centered ? niceRangeCentered(xMin, xMax, 5) : niceRange(xMin, xMax, 5)
     xTicks.forEach((v) => {
       const x = sx(v)
       ctx.fillText(centered ? v.toFixed(1) : `10${superscript(v)}`, x, H - pad.bottom + 16)
-      ctx.strokeStyle = '#f0ede9'
+      ctx.strokeStyle = cc.grid || '#f0ede9'
       ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke()
     })
     ctx.textAlign = 'right'
@@ -66,13 +70,13 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     yTicks.forEach((v) => {
       const y = sy(v)
       ctx.fillText(centered ? v.toFixed(1) : `10${superscript(v)}`, pad.left - 6, y + 3)
-      ctx.strokeStyle = '#f0ede9'
+      ctx.strokeStyle = cc.grid || '#f0ede9'
       ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke()
     })
 
     // Zero lines for centered view
     if (centered) {
-      ctx.strokeStyle = '#d0cdc8'
+      ctx.strokeStyle = cc.zeroLine || '#d0cdc8'
       ctx.lineWidth = 1
       ctx.setLineDash([4, 3])
       if (xMin < 0 && xMax > 0) {
@@ -87,7 +91,7 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
     }
 
     // Axis labels
-    ctx.fillStyle = '#6b6560'
+    ctx.fillStyle = cc.labelText || '#6b6560'
     ctx.font = '10px DM Sans, system-ui'
     ctx.textAlign = 'center'
     ctx.fillText(xLabel, pad.left + pw / 2, H - 2)
@@ -147,7 +151,7 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
       ctx.lineTo(sx(L[1].x), sy(L[1].y))
       ctx.stroke()
     }
-  }, [data, reg, mode, xKey, yKey, xLabel, yLabel, centered])
+  }, [data, reg, mode, xKey, yKey, xLabel, yLabel, centered, chartColors])
 
   return (
     <div className="chart-wrap">
@@ -156,10 +160,90 @@ const Scatter = ({ data, reg, mode, xKey, yKey, xLabel, yLabel, centered }) => {
   )
 }
 
+const CitySearch = ({ onSelectCity }) => {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState([])
+  const [showDropdown, setShowDropdown] = useState(false)
+  const [searchIndex, setSearchIndex] = useState(null)
+
+  useEffect(() => {
+    Promise.all([
+      fetch(`${DATA_BASE}/index/city_meta.json`).then(r => r.json()),
+      fetch(`${DATA_BASE}/index/city_aliases.json`).then(r => r.json()).catch(() => ({}))
+    ]).then(([meta, aliases]) => {
+      const items = Object.entries(meta)
+        .filter(([, m]) => m.city)
+        .map(([id, m]) => ({
+          city_id: parseInt(id),
+          city: m.city,
+          country_iso: m.country_iso,
+          aliases: aliases[id] || []
+        }))
+      const fuse = new Fuse(items, {
+        keys: [
+          { name: 'city', weight: 0.6 },
+          { name: 'country_iso', weight: 0.15 },
+          { name: 'aliases', weight: 0.25 }
+        ],
+        threshold: 0.35,
+        includeMatches: true
+      })
+      setSearchIndex(fuse)
+    })
+  }, [])
+
+  const handleInput = (e) => {
+    const q = e.target.value
+    setQuery(q)
+    if (!searchIndex || q.length < 2) { setResults([]); setShowDropdown(false); return }
+    const hits = searchIndex.search(q, { limit: 10 })
+    setResults(hits)
+    setShowDropdown(hits.length > 0)
+  }
+
+  const handleSelect = (item) => {
+    onSelectCity(item.city_id, item.country_iso, null, item.city)
+    setQuery('')
+    setResults([])
+    setShowDropdown(false)
+  }
+
+  return (
+    <div className="city-select">
+      <label>Search cities</label>
+      <div className="search-wrap">
+        <input
+          type="text"
+          placeholder="e.g. Tokyo, New York, Lagos"
+          value={query}
+          onChange={handleInput}
+          onFocus={() => { if (results.length) setShowDropdown(true) }}
+          onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+        />
+        {showDropdown && (
+          <ul className="search-results">
+            {results.map(({ item, matches }) => {
+              const aliasMatch = matches?.find(m => m.key === 'aliases')
+              return (
+                <li key={item.city_id} onMouseDown={() => handleSelect(item)}>
+                  <span className="sr-name">{item.city}</span>
+                  <span className="sr-iso">{item.country_iso}</span>
+                  {aliasMatch && <span className="sr-alias">includes {aliasMatch.value}</span>}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  )
+}
+
 const CityPanel = ({ scope, onSelectCity, countryName }) => {
   const [data, setData] = useState([])
   const [reg, setReg] = useState(null)
   const [mode, setMode] = useState('density')
+  const { chartColors } = useTheme()
 
   // Global: show de-centered; Country/City: show original
   const isCentered = scope.level === 'global'
@@ -210,7 +294,7 @@ const CityPanel = ({ scope, onSelectCity, countryName }) => {
           </div>
         )}
       </div>
-      <Scatter data={data} reg={reg} mode={mode} xKey={xKey} yKey={yKey} xLabel={xLabel} yLabel={yLabel} centered={isCentered} />
+      <Scatter data={data} reg={reg} mode={mode} xKey={xKey} yKey={yKey} xLabel={xLabel} yLabel={yLabel} centered={isCentered} chartColors={chartColors} />
       <div className="stat-row">
         {reg && isFinite(reg.slope) && (
           <>
@@ -225,19 +309,7 @@ const CityPanel = ({ scope, onSelectCity, countryName }) => {
         <span><span className="legend-swatch" style={{ display: 'inline-block', width: 16, height: 2, borderRadius: 1, background: COLORS.line }} /> OLS fit</span>
         <span><span className="legend-swatch" style={{ display: 'inline-block', width: 16, height: 8, borderRadius: 2, background: COLORS.band, border: `1px solid ${COLORS.band}` }} /> 95% CI</span>
       </div>
-      <div className="city-select">
-        <label>Jump to city (ID)</label>
-        <input
-          type="number"
-          placeholder="e.g. 474"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              const id = parseInt(e.target.value)
-              if (id) onSelectCity(id)
-            }
-          }}
-        />
-      </div>
+      <CitySearch onSelectCity={onSelectCity} />
     </>
   )
 }

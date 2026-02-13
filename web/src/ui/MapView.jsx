@@ -12,7 +12,7 @@ const MAP_STYLE = MAPTILER_KEY
   ? `https://api.maptiler.com/maps/dataviz-dark/style.json?key=${MAPTILER_KEY}`
   : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json'
 
-const MapView = ({ scope, metric, onSelectCountry, onSelectCity }) => {
+const MapView = ({ scope, metric, onSelectCountry, onSelectCity, onReset }) => {
   const containerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const overlayRef = useRef(null)
@@ -125,11 +125,12 @@ const MapView = ({ scope, metric, onSelectCountry, onSelectCity }) => {
           const f = e.features?.[0]
           const cid = f?.properties?.city_id
           const iso = f?.properties?.country_iso
+          const cityName = f?.properties?.name
           if (cid) {
             const cntryName = countriesDataRef.current?.features?.find(
               cf => cf.properties?.iso3 === iso
             )?.properties?.name || iso
-            onSelectCityRef.current(cid, iso, cntryName)
+            onSelectCityRef.current(cid, iso, cntryName, cityName)
           }
         })
         map.on('mousemove', 'city-pts', (e) => {
@@ -270,6 +271,18 @@ const MapView = ({ scope, metric, onSelectCountry, onSelectCity }) => {
   return (
     <div className="map-container">
       <div ref={containerRef} />
+
+      {/* Global View button */}
+      {scope.level !== 'global' && (
+        <button className="map-global-btn" onClick={onReset}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M2 12h20" />
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+          </svg>
+          Global View
+        </button>
+      )}
 
       {/* Legend */}
       {legend.lo && legend.hi && (

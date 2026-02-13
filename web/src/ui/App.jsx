@@ -14,9 +14,9 @@ const App = () => {
     setCountryName(name || iso3)
     setCityName(null)
   }
-  const onSelectCity = (cityId, iso, cntryName) => {
+  const onSelectCity = (cityId, iso, cntryName, cityNameArg) => {
     setScope((s) => ({ level: 'city', iso: iso || s.iso, cityId }))
-    setCityName(`City ${cityId}`)
+    setCityName(cityNameArg || `City ${cityId}`)
     if (cntryName) setCountryName(cntryName)
   }
   const onReset = () => {
@@ -31,7 +31,7 @@ const App = () => {
 
   return (
     <div className="app-layout">
-      <MapView scope={scope} metric={metric} onSelectCountry={onSelectCountry} onSelectCity={onSelectCity} />
+      <MapView scope={scope} metric={metric} onSelectCountry={onSelectCountry} onSelectCity={onSelectCity} onReset={onReset} />
 
       <div className="panel panel-right">
         <div className="site-header">
