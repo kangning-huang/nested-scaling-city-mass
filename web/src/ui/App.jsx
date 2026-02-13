@@ -33,7 +33,7 @@ const App = () => {
       <div className="panel panel-left">
         <div className="site-header">
           <div className="site-title">Nested Scaling of Urban Material Stocks</div>
-          <div className="site-subtitle">Population-mass scaling across cities and neighborhoods</div>
+          <div className="site-subtitle">Population-mass scaling across cities and neighborhoods — <a href="https://arxiv.org/abs/2507.03960" target="_blank" rel="noopener noreferrer">arXiv:2507.03960</a></div>
           <div className="breadcrumbs">
             <span className={`crumb${scope.level === 'global' ? ' active' : ''}`} onClick={onReset}>Global</span>
             {scope.level !== 'global' && (

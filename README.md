@@ -3,6 +3,7 @@
 Status
 - This project accompanies our manuscript on nested scaling relationships of population and built environment mass across cities and neighborhoods.
 - The paper is currently under review / in revision at Nature Cities.
+- Preprint: [arXiv:2507.03960](https://arxiv.org/abs/2507.03960)
 - Live site: https://kangning-huang.github.io/nested_scaling_city_mass/
 
 Key Analyses (implemented in scripts and used to power the site)
@@ -45,11 +46,11 @@ Version-Controlled Folders
 - `webdata/countries.geojson`:
   - FeatureCollection; feature properties: `iso3` (ISO-3), `name` (country).
 - `webdata/cities_agg/*.json` (global and `country=ISO.json`): list of cities.
-  - Fields: `country_iso` (ISO-3), `city_id` (int), `city` (name), `pop_total` (people), `mass_total` (tons), `n_hex` (count of H3 R7 cells), `sample_h3` (representative H3 index), `log_pop` (log10), `log_mass` (log10).
+  - Fields: `country_iso` (ISO-3), `city_id` (int), `city` (name), `pop_total` (people), `mass_total` (tons), `lat`, `lon`, `log_pop` (log10), `log_mass` (log10).
 - `webdata/index/country_to_cities.json`:
   - Object map: `ISO-3` → `[city_id, ...]`.
 - `webdata/index/city_meta.json`:
-  - Object map: `city_id` → `{ city, country_iso, sample_h3, n_hex }`.
+  - Object map: `city_id` → `{ city, country_iso, lat, lon }`.
 - `webdata/scatter_samples/global_neighborhood.json` and `country=ISO.json`:
   - List of subsampled neighborhoods; fields: `country_iso`, `city_id`, `log_pop` (log10 people), `log_mass` (log10 tons).
 - `webdata/regression/*` (OLS summaries; decentered form):

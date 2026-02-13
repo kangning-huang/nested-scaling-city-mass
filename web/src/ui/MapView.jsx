@@ -68,8 +68,7 @@ const MapView = ({ scope, metric, onSelectCountry, onSelectCity }) => {
       if (metaRes.ok) {
         const meta = await metaRes.json()
         const features = Object.entries(meta).map(([cityId, m]) => {
-          const [lat, lng] = h3.cellToLatLng(m.sample_h3)
-          return { type: 'Feature', geometry: { type: 'Point', coordinates: [lng, lat] }, properties: { city_id: parseInt(cityId), country_iso: m.country_iso, name: m.city } }
+          return { type: 'Feature', geometry: { type: 'Point', coordinates: [m.lon, m.lat] }, properties: { city_id: parseInt(cityId), country_iso: m.country_iso, name: m.city } }
         })
         cityPointsRef.current = { type: 'FeatureCollection', features }
         map.addSource('cities', { type: 'geojson', data: cityPointsRef.current })
