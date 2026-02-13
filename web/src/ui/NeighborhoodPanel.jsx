@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { DATA_BASE } from '../config'
 
 const COLORS = {
-  point: 'rgba(122, 92, 58, 0.45)',
-  density: (v) => `rgba(122, 92, 58, ${Math.min(0.92, 0.08 + v * 0.84)})`,
-  line: '#7a5c3a',
-  band: 'rgba(122, 92, 58, 0.12)',
+  point: 'rgba(141, 160, 203, 0.03)',
+  density: (v) => `rgba(141, 160, 203, ${Math.min(0.92, 0.03 + v * 0.89)})`,
+  line: '#bf0000',
+  band: 'rgba(191, 0, 0, 0.15)',
 }
 
 const Scatter = ({ data, reg, mode }) => {

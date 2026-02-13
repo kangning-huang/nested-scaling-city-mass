@@ -20,12 +20,12 @@
   --border: #ddd8d1;
   --border-light: #ebe7e1;
 
-  --chart-city: #3a6b9f;
-  --chart-city-fill: rgba(58, 107, 159, 0.55);
-  --chart-city-band: rgba(58, 107, 159, 0.12);
-  --chart-neigh: #7a5c3a;
-  --chart-neigh-fill: rgba(122, 92, 58, 0.5);
-  --chart-neigh-band: rgba(122, 92, 58, 0.12);
+  --chart-city: #fc8d62;
+  --chart-city-fill: rgba(252, 141, 98, 0.55);
+  --chart-city-band: rgba(252, 141, 98, 0.15);
+  --chart-neigh: #bf0000;
+  --chart-neigh-fill: rgba(191, 0, 0, 0.5);
+  --chart-neigh-band: rgba(191, 0, 0, 0.15);
 
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
   --radius: 8px;
@@ -154,8 +154,6 @@ body {
 /* ---- Section panels ---- */
 .section {
   padding: 14px 20px 16px;
-  flex: 1;
-  min-height: 0;
 }
 .section-divider {
   height: 1px;

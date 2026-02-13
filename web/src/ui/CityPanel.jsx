@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react'
 import { DATA_BASE } from '../config'
 
 const COLORS = {
-  point: 'rgba(58, 107, 159, 0.55)',
-  density: (v) => `rgba(58, 107, 159, ${Math.min(0.92, 0.08 + v * 0.84)})`,
-  line: '#3a6b9f',
-  band: 'rgba(58, 107, 159, 0.12)',
+  point: 'rgba(141, 160, 203, 0.5)',
+  density: (v) => `rgba(141, 160, 203, ${Math.min(0.92, 0.08 + v * 0.84)})`,
+  line: '#fc8d62',
+  band: 'rgba(252, 141, 98, 0.18)',
 }
 
 const Scatter = ({ data, reg, mode }) => {
@@ -198,8 +198,8 @@ const CityPanel = ({ scope, onSelectCity, countryName }) => {
         )}
       </div>
       <div className="legend-row">
-        <span><span className="legend-swatch" style={{ width: 16, height: 2, borderRadius: 1, background: COLORS.line }} /> OLS fit</span>
-        <span><span className="legend-swatch" style={{ width: 16, height: 8, borderRadius: 2, background: COLORS.band, border: `1px solid ${COLORS.band}` }} /> 95% CI</span>
+        <span><span className="legend-swatch" style={{ display: 'inline-block', width: 16, height: 2, borderRadius: 1, background: COLORS.line }} /> OLS fit</span>
+        <span><span className="legend-swatch" style={{ display: 'inline-block', width: 16, height: 8, borderRadius: 2, background: COLORS.band, border: `1px solid ${COLORS.band}` }} /> 95% CI</span>
       </div>
       <div className="city-select">
         <label>Jump to city (ID)</label>
