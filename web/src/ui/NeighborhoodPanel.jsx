@@ -143,7 +143,7 @@ const Scatter = ({ data, reg, mode }) => {
 const NeighborhoodPanel = ({ scope, cityName, countryName }) => {
   const [data, setData] = useState([])
   const [reg, setReg] = useState(null)
-  const [mode, setMode] = useState('points')
+  const [mode, setMode] = useState('density')
 
   useEffect(() => {
     const load = async () => {

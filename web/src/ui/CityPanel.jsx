@@ -143,7 +143,7 @@ const Scatter = ({ data, reg, mode }) => {
 const CityPanel = ({ scope, onSelectCity, countryName }) => {
   const [data, setData] = useState([])
   const [reg, setReg] = useState(null)
-  const [mode, setMode] = useState('points')
+  const [mode, setMode] = useState('density')
 
   useEffect(() => {
     let cityUrl = `${DATA_BASE}/cities_agg/global.json`
