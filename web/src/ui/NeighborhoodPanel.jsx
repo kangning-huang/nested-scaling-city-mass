@@ -1,37 +1,88 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { DATA_BASE } from '../config'
 
-const Panel = ({ title, children }) => (
-  <div style={{ padding: 12 }}>
-    <div style={{ fontWeight: 600, marginBottom: 8 }}>{title}</div>
-    {children}
-  </div>
-)
+const COLORS = {
+  point: 'rgba(122, 92, 58, 0.45)',
+  density: (v) => `rgba(122, 92, 58, ${Math.min(0.92, 0.08 + v * 0.84)})`,
+  line: '#7a5c3a',
+  band: 'rgba(122, 92, 58, 0.12)',
+}
 
 const Scatter = ({ data, reg, mode }) => {
   const canvasRef = useRef(null)
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const dpr = window.devicePixelRatio || 1
-    canvas.width = canvas.clientWidth * dpr
-    canvas.height = canvas.clientHeight * dpr
+    const W = canvas.clientWidth
+    const H = canvas.clientHeight
+    canvas.width = W * dpr
+    canvas.height = H * dpr
     const ctx = canvas.getContext('2d')
     ctx.scale(dpr, dpr)
-    ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight)
+    ctx.clearRect(0, 0, W, H)
 
-    if (!data || !data.length) return
+    if (!data || !data.length) {
+      ctx.fillStyle = '#9a948e'
+      ctx.font = '12px DM Sans, system-ui'
+      ctx.textAlign = 'center'
+      ctx.fillText('No data available', W / 2, H / 2)
+      return
+    }
+
+    const pad = { top: 12, right: 12, bottom: 28, left: 36 }
     const xVals = data.map((d) => d.log_pop)
     const yVals = data.map((d) => d.log_mass)
     const xMin = Math.min(...xVals), xMax = Math.max(...xVals)
     const yMin = Math.min(...yVals), yMax = Math.max(...yVals)
-    const W = canvas.clientWidth, H = canvas.clientHeight
-    const pad = 24
-    const sx = (x) => pad + ((x - xMin) / (xMax - xMin || 1)) * (W - 2 * pad)
-    const sy = (y) => H - pad - ((y - yMin) / (yMax - yMin || 1)) * (H - 2 * pad)
+    const pw = W - pad.left - pad.right
+    const ph = H - pad.top - pad.bottom
+    const sx = (x) => pad.left + ((x - xMin) / (xMax - xMin || 1)) * pw
+    const sy = (y) => H - pad.bottom - ((y - yMin) / (yMax - yMin || 1)) * ph
+
+    // Axis lines
+    ctx.strokeStyle = '#ebe7e1'
+    ctx.lineWidth = 1
+    ctx.beginPath()
+    ctx.moveTo(pad.left, pad.top)
+    ctx.lineTo(pad.left, H - pad.bottom)
+    ctx.lineTo(W - pad.right, H - pad.bottom)
+    ctx.stroke()
+
+    // Tick labels
+    ctx.fillStyle = '#9a948e'
+    ctx.font = '10px DM Sans, system-ui'
+    ctx.textAlign = 'center'
+    const xTicks = niceRange(xMin, xMax, 5)
+    xTicks.forEach((v) => {
+      const x = sx(v)
+      ctx.fillText(`10${superscript(v)}`, x, H - pad.bottom + 16)
+      ctx.strokeStyle = '#f0ede9'
+      ctx.beginPath(); ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke()
+    })
+    ctx.textAlign = 'right'
+    const yTicks = niceRange(yMin, yMax, 4)
+    yTicks.forEach((v) => {
+      const y = sy(v)
+      ctx.fillText(`10${superscript(v)}`, pad.left - 6, y + 3)
+      ctx.strokeStyle = '#f0ede9'
+      ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke()
+    })
+
+    // Axis labels
+    ctx.fillStyle = '#6b6560'
+    ctx.font = '10px DM Sans, system-ui'
+    ctx.textAlign = 'center'
+    ctx.fillText('log\u2081\u2080 Population', pad.left + pw / 2, H - 2)
+    ctx.save()
+    ctx.translate(10, pad.top + ph / 2)
+    ctx.rotate(-Math.PI / 2)
+    ctx.fillText('log\u2081\u2080 Built Mass (t)', 0, 0)
+    ctx.restore()
 
     if (mode === 'density') {
-      const gw = 140, gh = 100
+      const gw = 120, gh = 90
       const grid = new Uint32Array(gw * gh)
       for (const d of data) {
         const xi = Math.min(gw - 1, Math.max(0, Math.floor(((d.log_pop - xMin) / (xMax - xMin || 1)) * gw)))
@@ -43,33 +94,36 @@ const Scatter = ({ data, reg, mode }) => {
         for (let xi = 0; xi < gw; xi++) {
           const v = grid[yi * gw + xi] / max
           if (v <= 0) continue
-          const x0 = pad + (xi / gw) * (W - 2 * pad)
-          const y0 = H - pad - ((yi + 1) / gh) * (H - 2 * pad)
-          ctx.fillStyle = `rgba(80,80,80,${Math.min(0.9, 0.1 + v)})`
-          ctx.fillRect(x0, y0, (W - 2 * pad) / gw + 1, (H - 2 * pad) / gh + 1)
+          ctx.fillStyle = COLORS.density(v)
+          const x0 = pad.left + (xi / gw) * pw
+          const y0 = H - pad.bottom - ((yi + 1) / gh) * ph
+          ctx.fillRect(x0, y0, pw / gw + 1, ph / gh + 1)
         }
       }
     } else {
-      ctx.fillStyle = 'rgba(90, 90, 90, 0.55)'
+      ctx.fillStyle = COLORS.point
       for (const d of data) {
-        const x = sx(d.log_pop), y = sy(d.log_mass)
-        ctx.fillRect(x, y, 2, 2)
+        ctx.fillRect(sx(d.log_pop) - 1, sy(d.log_mass) - 1, 2, 2)
       }
     }
 
+    // Regression
     if (reg && isFinite(reg.slope)) {
       const xs = [xMin, xMax]
       const line = (m) => xs.map((x) => ({ x, y: reg.y0 + m * (x - reg.x0) }))
       if (isFinite(reg.slope_lo) && isFinite(reg.slope_hi)) {
-        ctx.fillStyle = 'rgba(127,127,127,0.15)'
+        ctx.fillStyle = COLORS.band
         ctx.beginPath()
         const upper = line(reg.slope_hi)
         const lower = line(reg.slope_lo).reverse()
-        const all = upper.concat(lower)
-        all.forEach((p, i) => { const X = sx(p.x), Y = sy(p.y); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y) })
-        ctx.closePath(); ctx.fill()
+        ;[...upper, ...lower].forEach((p, i) => {
+          const X = sx(p.x), Y = sy(p.y)
+          i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y)
+        })
+        ctx.closePath()
+        ctx.fill()
       }
-      ctx.strokeStyle = '#444'
+      ctx.strokeStyle = COLORS.line
       ctx.lineWidth = 2
       ctx.beginPath()
       const L = line(reg.slope)
@@ -77,11 +131,16 @@ const Scatter = ({ data, reg, mode }) => {
       ctx.lineTo(sx(L[1].x), sy(L[1].y))
       ctx.stroke()
     }
-  }, [data, reg])
-  return <div style={{ height: 260, border: '1px solid #eee', borderRadius: 6 }}><canvas ref={canvasRef} style={{ width: '100%', height: '100%' }} /></div>
+  }, [data, reg, mode])
+
+  return (
+    <div className="chart-wrap">
+      <canvas ref={canvasRef} />
+    </div>
+  )
 }
 
-const NeighborhoodPanel = ({ scope }) => {
+const NeighborhoodPanel = ({ scope, cityName, countryName }) => {
   const [data, setData] = useState([])
   const [reg, setReg] = useState(null)
   const [mode, setMode] = useState('points')
@@ -94,59 +153,84 @@ const NeighborhoodPanel = ({ scope }) => {
         sampleUrl = `${DATA_BASE}/scatter_samples/country=${scope.iso}.json`
         regUrl = `${DATA_BASE}/regression/country_neighborhood/${scope.iso}.json`
       } else if (scope.level === 'city') {
-        // For city-level neighborhood scatter, build on the fly from the hex feed (small enough)
-        const url = `${DATA_BASE}/hex/city=${scope.cityId}.json`
-        const rows = await (await fetch(url)).json()
-        const mapped = rows.map((r) => ({ log_pop: Math.log10(Math.max(1e-9, r.population_2015)), log_mass: Math.log10(Math.max(1e-9, r.total_built_mass_tons)) }))
-        setData(mapped)
-        const regRes = await fetch(`${DATA_BASE}/regression/city_neighborhood/${scope.cityId}.json`)
-        if (regRes.ok) setReg(await regRes.json())
+        try {
+          const rows = await (await fetch(`${DATA_BASE}/hex/city=${scope.cityId}.json`)).json()
+          setData(rows.map((r) => ({
+            log_pop: Math.log10(Math.max(1e-9, r.population_2015)),
+            log_mass: Math.log10(Math.max(1e-9, r.total_built_mass_tons)),
+          })))
+          const rRes = await fetch(`${DATA_BASE}/regression/city_neighborhood/${scope.cityId}.json`)
+          if (rRes.ok) setReg(await rRes.json()); else setReg(null)
+        } catch { setData([]); setReg(null) }
         return
       }
-      const [sRes, rRes] = await Promise.all([fetch(sampleUrl), fetch(regUrl)])
-      if (sRes.ok) setData(await sRes.json())
-      if (rRes.ok) setReg(await rRes.json())
+      try {
+        const [sRes, rRes] = await Promise.all([fetch(sampleUrl), fetch(regUrl)])
+        if (sRes.ok) setData(await sRes.json()); else setData([])
+        if (rRes.ok) setReg(await rRes.json()); else setReg(null)
+      } catch { setData([]); setReg(null) }
     }
     load()
   }, [scope])
 
-  const title = scope.level === 'country' ? `Neighborhoods in ${scope.iso}` : scope.level === 'city' ? `Neighborhoods of city ${scope.cityId}` : 'Global Neighborhoods'
+  const title = scope.level === 'city'
+    ? `Neighborhoods of ${cityName || `City ${scope.cityId}`}`
+    : scope.level === 'country'
+    ? `Neighborhoods in ${countryName || scope.iso}`
+    : 'All Neighborhoods'
+
   return (
-    <Panel title={title}>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 12, color: '#666' }}>Mode:</span>
-        <div className="btn-group">
-          <button onClick={() => setMode('points')} disabled={mode==='points'}>Points</button>
-          <button onClick={() => setMode('density')} disabled={mode==='density'}>Density</button>
+    <>
+      <div className="section-title">
+        {title}
+        <span className="badge neigh">Neighborhood</span>
+      </div>
+      <div className="chart-controls">
+        <span className="control-label">View</span>
+        <div className="toggle-group">
+          <button onClick={() => setMode('points')} disabled={mode === 'points'}>Points</button>
+          <button onClick={() => setMode('density')} disabled={mode === 'density'}>Density</button>
         </div>
-        {mode==='density' && (
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#666' }}>
-            <span>Density</span>
-            <div style={{ display: 'inline-flex', gap: 2 }}>
-              {Array.from({length:6},(_,i)=>i).map(i => (
-                <div key={i} style={{ width: 18, height: 10, background: `rgba(80,80,80,${0.15 + (i/5)*0.75})`, borderRadius: 2 }} />
-              ))}
-            </div>
-            <span>higher</span>
+        {mode === 'density' && (
+          <div className="density-ramp">
+            <span className="label">low</span>
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="swatch" style={{ background: COLORS.density(i / 5) }} />
+            ))}
+            <span className="label">high</span>
           </div>
         )}
       </div>
       <Scatter data={data} reg={reg} mode={mode} />
-      <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+      <div className="stat-row">
         {reg && isFinite(reg.slope) && (
-          <>Slope: {reg.slope.toFixed(3)} (95% CI {reg.slope_lo.toFixed(3)}–{reg.slope_hi.toFixed(3)}), n={reg.n}</>
+          <>
+            <span><span className="stat-label">Slope</span> <span className="stat-value">{reg.slope.toFixed(3)}</span></span>
+            <span><span className="stat-label">95% CI</span> {reg.slope_lo.toFixed(3)}–{reg.slope_hi.toFixed(3)}</span>
+            <span><span className="stat-label">n</span> {reg.n?.toLocaleString()}</span>
+            <span><span className="stat-label">R&sup2;</span> {reg.r2?.toFixed(3)}</span>
+          </>
         )}
       </div>
-      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 10, fontSize: 11, color: '#666' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ display: 'inline-block', width: 18, height: 2, background: '#444' }} /> OLS fit
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ display: 'inline-block', width: 18, height: 10, background: 'rgba(127,127,127,0.15)', border: '1px solid rgba(127,127,127,0.25)' }} /> 95% CI band
-        </div>
+      <div className="legend-row">
+        <span><span className="legend-swatch" style={{ display: 'inline-block', width: 16, height: 2, borderRadius: 1, background: COLORS.line }} /> OLS fit</span>
+        <span><span className="legend-swatch" style={{ display: 'inline-block', width: 16, height: 8, borderRadius: 2, background: COLORS.band, border: `1px solid ${COLORS.band}` }} /> 95% CI</span>
       </div>
-    </Panel>
+    </>
   )
+}
+
+function niceRange(lo, hi, count) {
+  const step = Math.ceil((hi - lo) / count)
+  const start = Math.ceil(lo)
+  const ticks = []
+  for (let v = start; v <= hi; v += Math.max(1, step)) ticks.push(v)
+  return ticks
+}
+
+function superscript(n) {
+  const sup = { '0': '\u2070', '1': '\u00B9', '2': '\u00B2', '3': '\u00B3', '4': '\u2074', '5': '\u2075', '6': '\u2076', '7': '\u2077', '8': '\u2078', '9': '\u2079', '-': '\u207B', '.': '\u00B7' }
+  return String(Math.round(n)).split('').map((c) => sup[c] || c).join('')
 }
 
 export default NeighborhoodPanel

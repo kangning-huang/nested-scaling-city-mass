@@ -11,6 +11,9 @@ CLAUDE.md
 WORKLOG.md
 revision-plan-*.md
 
+# Node
+node_modules/
+
 # Generated / heavy artifacts
 rosm.cache/
 *.geojson
