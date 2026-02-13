@@ -25,13 +25,21 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Expand data archives (if present)
-        run: bash ../scripts/unzip_webdata.sh
-
       - name: Build
         env:
           VITE_MAPTILER_KEY: ${{ secrets.MAPTILER_KEY }}
         run: npm run build
+
+      - name: Expand data archives into dist
+        run: |
+          cd dist/webdata
+          for z in *.zip; do
+            [ -f "$z" ] || continue
+            base="${z%.zip}"
+            mkdir -p "$base"
+            unzip -qo "$z" -d "$base"
+            rm -rf "$base/__MACOSX"
+          done
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
