@@ -189,16 +189,26 @@ const MapView = ({ scope, metric, onSelectCountry, onSelectCity, onReset }) => {
   // Zoom map when scope changes (handles breadcrumb navigation + country clicks)
   useEffect(() => {
     const map = mapInstanceRef.current
-    if (!map || !map.loaded()) return
-    if (scope.level === 'global') {
-      map.flyTo({ center: [0, 20], zoom: 1.3, duration: 600 })
-    } else if (scope.level === 'country' && countriesDataRef.current) {
-      // Find ALL features matching this iso3 (e.g. CHN may have multiple polygons)
-      const matchingFeats = countriesDataRef.current.features.filter(f => f.properties?.iso3 === scope.iso)
-      if (matchingFeats.length > 0) {
-        const bbox = turfBboxMulti(matchingFeats)
-        map.fitBounds(bbox, { padding: 30, duration: 600 })
+    if (!map) return
+
+    const performZoom = () => {
+      if (scope.level === 'global') {
+        map.flyTo({ center: [0, 20], zoom: 1.3, duration: 600 })
+      } else if (scope.level === 'country' && countriesDataRef.current) {
+        // Find ALL features matching this iso3 (e.g. CHN may have multiple polygons)
+        const matchingFeats = countriesDataRef.current.features.filter(f => f.properties?.iso3 === scope.iso)
+        if (matchingFeats.length > 0) {
+          const bbox = turfBboxMulti(matchingFeats)
+          map.fitBounds(bbox, { padding: 30, duration: 600 })
+        }
       }
+    }
+
+    // If map is loaded, zoom immediately; otherwise queue for when it's ready
+    if (map.loaded()) {
+      performZoom()
+    } else {
+      map.once('load', performZoom)
     }
     // city-level zoom is handled by the hex loading effect below
   }, [scope.level, scope.iso])
