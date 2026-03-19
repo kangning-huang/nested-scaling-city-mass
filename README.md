@@ -102,6 +102,152 @@ nested-scaling-city-mass/
 
 ---
 
+## System Requirements
+
+### Software Dependencies
+
+#### Python (≥ 3.9)
+
+| Package | Version | Purpose |
+|---------|---------|---------|
+| pandas | ≥ 1.5 | Data manipulation |
+| geopandas | ≥ 0.12 | Geospatial data frames |
+| numpy | ≥ 1.23 | Numerical computation |
+| scipy | ≥ 1.9 | Statistical functions |
+| h3 | ≥ 3.7 | Uber H3 hexagonal grid system |
+| earthengine-api | ≥ 0.1.370 | Google Earth Engine access |
+| geemap | ≥ 0.30 | GEE Python utilities |
+| rasterio | ≥ 1.3 | Raster I/O |
+| exactextract | ≥ 0.1 | Zonal statistics |
+| statsmodels | ≥ 0.14 | Statistical modeling |
+| powerlaw | ≥ 1.5 | Power-law distribution fitting (Clauset-Shalizi-Newman) |
+| matplotlib | ≥ 3.6 | Plotting |
+| seaborn | ≥ 0.12 | Statistical visualization |
+| shapely | ≥ 2.0 | Geometric operations |
+| tobler | ≥ 0.11 | Areal interpolation |
+
+#### R (≥ 4.0)
+
+| Package | Purpose |
+|---------|---------|
+| tidyverse (≥ 2.0) | Data wrangling and visualization |
+| lme4 (≥ 1.1) | Mixed-effects models |
+| sf (≥ 1.0) | Simple features for geospatial data |
+| ggplot2 (≥ 3.4) | Grammar of graphics plots |
+| scales (≥ 1.2) | Axis scaling utilities |
+| patchwork (≥ 1.1) | Multi-panel figure composition |
+| broom (≥ 1.0) | Model output tidying |
+| ggrepel | Non-overlapping text labels |
+| viridis | Color scales |
+| RColorBrewer | Diverging/qualitative palettes |
+
+#### Web Explorer (Node.js ≥ 18)
+
+See `web/package.json` for full dependency list. Key packages: React 18, deck.gl 9, MapLibre GL 4.3, Vite 5.
+
+### Operating Systems
+
+The software has been tested on:
+- **Ubuntu 22.04 LTS** (primary development)
+- **CentOS 7** (NYU HPC clusters)
+- **macOS 13+ (Ventura)**
+
+R and Python components are cross-platform and should work on any OS that supports the above dependencies.
+
+### Hardware Requirements
+
+- **Standard analysis:** No non-standard hardware required. A desktop or laptop with ≥ 16 GB RAM is sufficient for scaling analysis scripts (Stages 5–6) and figure generation.
+- **Full data pipeline (Stages 1–4):** Requires a Google Earth Engine account (free for research) for cloud-based raster extraction. Local road extraction (Stage 2a) benefits from ≥ 32 GB RAM due to large GRIP raster files.
+- **GPU:** Not required. All computations are CPU-based.
+
+---
+
+## Installation Guide
+
+### Python
+
+```bash
+python3 -m venv ~/.venvs/urban_scaling_env
+source ~/.venvs/urban_scaling_env/bin/activate
+pip install pandas geopandas numpy scipy h3 tobler geemap earthengine-api \
+            rasterio exactextract statsmodels powerlaw matplotlib seaborn shapely
+```
+
+### R
+
+```r
+install.packages(c("tidyverse", "lme4", "sf", "ggplot2", "scales",
+                   "patchwork", "broom", "ggrepel", "viridis", "RColorBrewer"))
+```
+
+### Google Earth Engine (required only for Stages 1–4)
+
+```bash
+pip install earthengine-api
+earthengine authenticate
+```
+
+### Web Explorer (optional)
+
+```bash
+cd web && npm ci
+```
+
+### Typical Install Time
+
+On a standard desktop computer with a broadband internet connection:
+- **Python environment:** ~5 minutes
+- **R packages:** ~5–10 minutes
+- **Web dependencies:** ~1 minute
+- **Total:** ~10–15 minutes
+
+---
+
+## Demo
+
+### Quick Demo: Reproduce Scaling Figures
+
+This demo reproduces the main scaling analysis results (Figures 2–4) using pre-processed data included with the repository's data release.
+
+#### Prerequisites
+
+- Python and R environments installed (see Installation Guide above)
+- Processed data files placed in `data/processed/` (available from the data release accompanying this paper)
+
+#### Instructions
+
+```bash
+# 1. City-level scaling analysis (Figure 2)
+cd scripts/scaling_analysis
+Rscript Fig2_UniversalScaling_Decentered.R
+
+# 2. Neighborhood-level scaling analysis (Figure 3)
+Rscript Fig3_NeighborhoodScaling_Decentered.R
+
+# 3. Simulation analysis (Figure 4)
+cd ../data_pipeline
+python 06_estimate_neighborhood_zipf.py
+python 07_simulate_scaling.py
+python 10_generate_fig4.py
+```
+
+#### Expected Output
+
+- **Figure 2:** A scatter plot of log₁₀(population) vs log₁₀(built mass) for 3,588 cities, with an OLS regression line. The reported scaling exponent should be β = 0.900 (95% CI: [0.890, 0.909]), R² ≈ 0.94. Output saved as PDF/PNG in the `figures/` directory.
+- **Figure 3:** A scatter plot of log₁₀(population) vs log₁₀(built mass) for ~141,000 neighborhoods (H3 R7 hexagons), with a de-centered OLS regression line. The reported scaling exponent should be δ = 0.713 (95% CI: [0.712, 0.715]). Output saved as PDF/PNG in the `figures/` directory.
+- **Figure 4:** A multi-panel figure showing (a) Zipf rank-size distribution of neighborhood populations, (b) Monte Carlo simulation of predicted city-level β from neighborhood δ and Zipf exponents, and (c) comparison of observed vs simulated β distributions.
+- **Console output:** Summary statistics including slope, 95% confidence interval, R², sample size, and z-test comparing β vs δ.
+
+#### Expected Run Time
+
+On a standard desktop computer (e.g., 4-core CPU, 16 GB RAM):
+- **Figure 2 (city-level scaling):** ~1–2 minutes
+- **Figure 3 (neighborhood-level scaling):** ~3–5 minutes (larger dataset)
+- **Figure 4 (simulation):** ~5–10 minutes (Monte Carlo with 1,000 iterations)
+- **Total demo:** ~10–17 minutes
+
+---
+
 ## Data Sources
 
 All input datasets are publicly available. Data files are not tracked in this repository due to size constraints.
@@ -409,47 +555,7 @@ Regression lines use: `y = y0 + slope * (x - x0)`. All logs are base-10; populat
 
 ---
 
-## Environment Setup
-
-### Python
-
-```bash
-python3 -m venv ~/.venvs/urban_scaling_env
-source ~/.venvs/urban_scaling_env/bin/activate
-pip install pandas geopandas numpy scipy h3 tobler geemap earthengine-api rasterio exactextract statsmodels powerlaw matplotlib seaborn
-```
-
-### R
-
-```r
-install.packages(c("tidyverse", "lme4", "sf", "ggplot2", "scales", "patchwork", "broom"))
-```
-
-### Google Earth Engine
-
-```bash
-earthengine authenticate
-# GEE Project ID: ee-knhuang
-```
-
----
-
-## Reproducing Results
-
-### Quick Start (figures only, requires processed data)
-
-```bash
-# City-level scaling (Figure 2)
-cd scripts/scaling_analysis
-Rscript Fig2_UniversalScaling_Decentered.R
-
-# Neighborhood-level scaling (Figure 3)
-Rscript Fig3_NeighborhoodScaling_Decentered.R
-
-# Simulation analysis (Figure 4)
-cd ../data_pipeline
-python 10_generate_fig4.py
-```
+## Instructions for Use
 
 ### Full Pipeline (requires GEE authentication and raw data)
 
