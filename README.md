@@ -20,211 +20,109 @@ The two exponents are statistically distinct (z = 39.1, p < 0.001), with confide
 
 ---
 
-## Repository Structure
-
-```
-nested-scaling-city-mass/
-├── scripts/
-│   ├── data_pipeline/                    # Full data processing pipeline (GEE → mass → figures)
-│   │   ├── 01_create_h3_grids.py         # Generate H3 hexagonal grids for cities
-│   │   ├── 01b_create_h3_grids_nudged.py # Shifted grids for MAUP sensitivity
-│   │   ├── 02_extract_roads_neighborhood.py
-│   │   ├── 02b_extract_roads_clean.py    # Improved road extraction with lane widths
-│   │   ├── 03_extract_volume_pavement.py # Single-city extraction (synchronous)
-│   │   ├── 03_run_extraction.py          # Dispatcher for extraction approaches
-│   │   ├── 03a_submit_batch_exports.py   # GEE batch export submission
-│   │   ├── 03a_submit_batch_exports_nudged.py
-│   │   ├── 03b_monitor_batch_tasks.py    # Monitor GEE task completion
-│   │   ├── 03c_download_batch_results.py # Download and merge GEE results
-│   │   ├── 04_merge_building_road_data.py
-│   │   ├── 05_prep_global_mass_neighborhood.py
-│   │   ├── 06_estimate_neighborhood_zipf.py
-│   │   ├── 07_simulate_scaling.py        # Monte Carlo: δ + Zipf s → β
-│   │   ├── 08_compare_beta_boxplot.py
-│   │   ├── 09_generate_fig3.Rmd          # Neighborhood scaling figure
-│   │   ├── 09b_compare_scaling_resolutions.R
-│   │   ├── 09c_multiresolution_scaling_analysis.R
-│   │   ├── 10_generate_fig4.py           # Figure 4 assembly
-│   │   ├── Fig1_*.Rmd                    # Figure 1 data prep and assembly
-│   │   ├── Fig2_UniversalScaling_MIUpdated.Rmd
-│   │   ├── Fig3_NeighborhoodScaling_UpdateMI.Rmd
-│   │   ├── process_santa_fe.py           # Santa Fe city data pipeline
-│   │   ├── extract_santa_fe_gba_mi.py    # GBA building-level MI extraction
-│   │   ├── validate_h3_hierarchical_consistency.py
-│   │   ├── sensitivity/                  # Original mixed-effects sensitivity analyses
-│   │   │   ├── 05_sensitivity_random_datasource.R
-│   │   │   ├── 06_weighted_reliability_means.R
-│   │   │   ├── 07_MI_sensitivity_3tier.R
-│   │   │   └── calculate_CI_exact_reproduction.py
-│   │   └── utils/                        # Shared path utilities
-│   │       └── paths.py
-│   └── scaling_analysis/                 # Revised scaling analysis (de-centering approach)
-│       ├── Fig2_UniversalScaling_Decentered.R
-│       ├── Fig2_*_MI_sensitivity.R       # City-level MI sensitivity
-│       ├── Fig2_*_Source_Sensitivity.R   # City-level data source sensitivity
-│       ├── Fig2_*_Weighted_Source.R      # Reliability-weighted averaging
-│       ├── Fig2_*_WithSubwayMass.R       # Including underground infrastructure
-│       ├── Fig3_NeighborhoodScaling_Decentered.R
-│       ├── Fig3_*_Multiscale*.R          # H3 R5/R6/R7 resolution tests
-│       ├── Fig3_*_NudgeSensitivity.R     # Grid placement sensitivity
-│       ├── Fig3_*_R7*.R                  # Resolution 7 specific analyses
-│       ├── Fig3_ExtendedData_CityLines.R # Extended data: all city regression lines
-│       ├── Fig3_R7_city_candidates*.R    # Per-city slope analysis
-│       ├── extract_subway_mass_by_hexagon.py
-│       ├── osm_subway_download.py        # Download subway networks from OSM
-│       ├── test_zipf_vs_lognormal.py     # Distribution tests
-│       ├── test_rank_correlation.py
-│       ├── US_subset_scaling_Frantz_comparison.py
-│       ├── export_pop_lt_1_neighborhoods.R
-│       └── web_prep/                     # Scripts to prepare data for the website
-│           ├── prep_city_aggregates.py
-│           ├── prep_neighborhood_subsamples.py
-│           ├── compute_regressions.py
-│           ├── split_city_hex_feeds.py
-│           ├── download_countries_geojson.py
-│           └── pack_hex_to_zip.py
-├── data/                                 # Data files (not tracked in git)
-│   └── processed/
-│       └── h3_resolution{N}/             # Processed H3 hexagon data by resolution
-├── web/                                  # Interactive web explorer
-│   ├── src/                              # React + MapLibre + deck.gl frontend
-│   ├── public/webdata/                   # Static JSON data for the website
-│   │   ├── cities_agg/                   # City-level aggregates by country
-│   │   ├── hex/                          # Per-city H3 hexagon feeds
-│   │   ├── regression/                   # OLS regression parameters
-│   │   ├── scatter_samples/              # Subsampled scatter plot data
-│   │   └── index/                        # City metadata and search indices
-│   └── scripts/                          # Data processing utilities
-├── config/                               # Path configuration for multi-environment support
-└── tests/
-    └── pipeline_tests/                   # Pipeline validation tests
-```
-
----
-
 ## System Requirements
 
 ### Software Dependencies
 
-#### Python (≥ 3.9)
+**Python** (tested on 3.10–3.12):
 
-| Package | Version | Purpose |
-|---------|---------|---------|
-| pandas | ≥ 1.5 | Data manipulation |
-| geopandas | ≥ 0.12 | Geospatial data frames |
-| numpy | ≥ 1.23 | Numerical computation |
-| scipy | ≥ 1.9 | Statistical functions |
-| h3 | ≥ 3.7 | Uber H3 hexagonal grid system |
-| earthengine-api | ≥ 0.1.370 | Google Earth Engine access |
-| geemap | ≥ 0.30 | GEE Python utilities |
-| rasterio | ≥ 1.3 | Raster I/O |
-| exactextract | ≥ 0.1 | Zonal statistics |
-| statsmodels | ≥ 0.14 | Statistical modeling |
-| powerlaw | ≥ 1.5 | Power-law distribution fitting (Clauset-Shalizi-Newman) |
-| matplotlib | ≥ 3.6 | Plotting |
-| seaborn | ≥ 0.12 | Statistical visualization |
-| shapely | ≥ 2.0 | Geometric operations |
-| tobler | ≥ 0.11 | Areal interpolation |
+- pandas >= 1.5
+- geopandas >= 0.12
+- numpy >= 1.23
+- scipy >= 1.10
+- h3 >= 3.7
+- tobler >= 0.9
+- geemap >= 0.20
+- earthengine-api >= 0.1.350
+- rasterio >= 1.3
+- exactextract >= 0.1
+- statsmodels >= 0.14
+- powerlaw >= 1.5
+- matplotlib >= 3.6
+- seaborn >= 0.12
 
-#### R (≥ 4.0)
+**R** (tested on 4.3–4.4):
 
-| Package | Purpose |
-|---------|---------|
-| tidyverse (≥ 2.0) | Data wrangling and visualization |
-| lme4 (≥ 1.1) | Mixed-effects models |
-| sf (≥ 1.0) | Simple features for geospatial data |
-| ggplot2 (≥ 3.4) | Grammar of graphics plots |
-| scales (≥ 1.2) | Axis scaling utilities |
-| patchwork (≥ 1.1) | Multi-panel figure composition |
-| broom (≥ 1.0) | Model output tidying |
-| ggrepel | Non-overlapping text labels |
-| viridis | Color scales |
-| RColorBrewer | Diverging/qualitative palettes |
+- tidyverse >= 2.0
+- lme4 >= 1.1
+- sf >= 1.0
+- ggplot2 >= 3.4
+- scales >= 1.2
+- patchwork >= 1.1
+- broom >= 1.0
 
-#### Web Explorer (Node.js ≥ 18)
+**Node.js** (for the interactive website only; tested on 18–20):
 
-See `web/package.json` for full dependency list. Key packages: React 18, deck.gl 9, MapLibre GL 4.3, Vite 5.
+- See `web/package.json` for frontend dependencies (React, MapLibre GL, deck.gl)
 
 ### Operating Systems
 
-The software has been tested on:
-- **Ubuntu 22.04 LTS** (primary development)
-- **CentOS 7** (NYU HPC clusters)
-- **macOS 13+ (Ventura)**
+Tested on:
 
-R and Python components are cross-platform and should work on any OS that supports the above dependencies.
+- macOS 14 (Sonoma) and macOS 15 (Sequoia), Apple Silicon (M1/M2/M3)
+- Ubuntu 22.04 LTS (x86_64)
 
 ### Hardware Requirements
 
-- **Standard analysis:** No non-standard hardware required. A desktop or laptop with ≥ 16 GB RAM is sufficient for scaling analysis scripts (Stages 5–6) and figure generation.
-- **Full data pipeline (Stages 1–4):** Requires a Google Earth Engine account (free for research) for cloud-based raster extraction. Local road extraction (Stage 2a) benefits from ≥ 32 GB RAM due to large GRIP raster files.
-- **GPU:** Not required. All computations are CPU-based.
+- No non-standard hardware required
+- Minimum 8 GB RAM recommended for processing city-level data
+- Google Earth Engine account required for data extraction stages (free for research use)
 
 ---
 
 ## Installation Guide
 
-### Python
+### Python Environment
 
 ```bash
 python3 -m venv ~/.venvs/urban_scaling_env
 source ~/.venvs/urban_scaling_env/bin/activate
-pip install pandas geopandas numpy scipy h3 tobler geemap earthengine-api \
-            rasterio exactextract statsmodels powerlaw matplotlib seaborn shapely
+pip install pandas geopandas numpy scipy h3 tobler geemap earthengine-api rasterio exactextract statsmodels powerlaw matplotlib seaborn
 ```
 
-### R
+### R Packages
 
 ```r
-install.packages(c("tidyverse", "lme4", "sf", "ggplot2", "scales",
-                   "patchwork", "broom", "ggrepel", "viridis", "RColorBrewer"))
+install.packages(c("tidyverse", "lme4", "sf", "ggplot2", "scales", "patchwork", "broom"))
 ```
 
-### Google Earth Engine (required only for Stages 1–4)
+### Google Earth Engine
 
 ```bash
-pip install earthengine-api
 earthengine authenticate
+# GEE Project ID: ee-knhuang
 ```
 
-### Web Explorer (optional)
+### Website (optional)
 
 ```bash
 cd web && npm ci
 ```
 
-### Typical Install Time
-
-On a standard desktop computer with a broadband internet connection:
-- **Python environment:** ~5 minutes
-- **R packages:** ~5–10 minutes
-- **Web dependencies:** ~1 minute
-- **Total:** ~10–15 minutes
+**Typical install time:** ~5–10 minutes on a normal desktop computer with a broadband internet connection.
 
 ---
 
 ## Demo
 
-### Quick Demo: Reproduce Scaling Figures
+### Quick Demo: Reproduce Main Scaling Figures
 
-This demo reproduces the main scaling analysis results (Figures 2–4) using pre-processed data included with the repository's data release.
-
-#### Prerequisites
-
-- Python and R environments installed (see Installation Guide above)
-- Processed data files placed in `data/processed/` (available from the data release accompanying this paper)
+The fastest way to verify the software is to reproduce the main scaling analysis figures using the processed data included with the submission.
 
 #### Instructions
 
 ```bash
-# 1. City-level scaling analysis (Figure 2)
+# Activate environment
+source ~/.venvs/urban_scaling_env/bin/activate
+
+# City-level scaling (Figure 2)
 cd scripts/scaling_analysis
 Rscript Fig2_UniversalScaling_Decentered.R
 
-# 2. Neighborhood-level scaling analysis (Figure 3)
+# Neighborhood-level scaling (Figure 3)
 Rscript Fig3_NeighborhoodScaling_Decentered.R
 
-# 3. Simulation analysis (Figure 4)
+# Simulation analysis (Figure 4)
 cd ../data_pipeline
 python 06_estimate_neighborhood_zipf.py
 python 07_simulate_scaling.py
@@ -233,18 +131,168 @@ python 10_generate_fig4.py
 
 #### Expected Output
 
-- **Figure 2:** A scatter plot of log₁₀(population) vs log₁₀(built mass) for 3,588 cities, with an OLS regression line. The reported scaling exponent should be β = 0.900 (95% CI: [0.890, 0.909]), R² ≈ 0.94. Output saved as PDF/PNG in the `figures/` directory.
-- **Figure 3:** A scatter plot of log₁₀(population) vs log₁₀(built mass) for ~141,000 neighborhoods (H3 R7 hexagons), with a de-centered OLS regression line. The reported scaling exponent should be δ = 0.713 (95% CI: [0.712, 0.715]). Output saved as PDF/PNG in the `figures/` directory.
-- **Figure 4:** A multi-panel figure showing (a) Zipf rank-size distribution of neighborhood populations, (b) Monte Carlo simulation of predicted city-level β from neighborhood δ and Zipf exponents, and (c) comparison of observed vs simulated β distributions.
-- **Console output:** Summary statistics including slope, 95% confidence interval, R², sample size, and z-test comparing β vs δ.
+- **Figure 2:** A scatter plot of log(population) vs log(material stock) across 3,588 cities with OLS regression line showing β ≈ 0.900
+- **Figure 3:** A scatter plot of log(population) vs log(material stock) across 141,109 neighborhoods with OLS regression line showing δ ≈ 0.713
+- **Figure 4:** Multi-panel figure with Zipf exponent distributions, Monte Carlo simulation results, and observed vs simulated β comparison
 
-#### Expected Run Time
+**Expected run time:** ~2–5 minutes for all three figures on a normal desktop computer.
 
-On a standard desktop computer (e.g., 4-core CPU, 16 GB RAM):
-- **Figure 2 (city-level scaling):** ~1–2 minutes
-- **Figure 3 (neighborhood-level scaling):** ~3–5 minutes (larger dataset)
-- **Figure 4 (simulation):** ~5–10 minutes (Monte Carlo with 1,000 iterations)
-- **Total demo:** ~10–17 minutes
+### GEE Extraction Demo
+
+A minimal Google Earth Engine demo script is provided to demonstrate the data extraction workflow for a single city at H3 Resolution 6:
+
+```bash
+cd scripts/data_pipeline/gee_demo
+python gee_sample_r6.py
+```
+
+---
+
+## Instructions for Use
+
+### Running on Your Own Data
+
+To apply the analysis pipeline to different cities or regions:
+
+1. **Define city boundaries** — upload city polygons as a GEE FeatureCollection
+2. **Create H3 grids** — run `01_create_h3_grids.py` with your FeatureCollection
+3. **Extract data** — run the batch extraction pipeline (Steps 03a–03c)
+4. **Merge and calculate mass** — run Steps 04–05
+5. **Run scaling analysis** — run the Fig2/Fig3 R scripts
+
+### Reproduction Instructions
+
+The full pipeline reproduces all quantitative results in the manuscript. See the [Reproducing Results](#reproducing-results) section below for complete step-by-step instructions covering the data processing pipeline, main figures, and all sensitivity analyses.
+
+---
+
+## Repository Structure
+
+```
+nested-scaling-city-mass/
+├── scripts/
+│   ├── build_SI_docx.py                     # Build Supplementary Information document
+│   ├── data_pipeline/                       # Full data processing pipeline (GEE → mass → figures)
+│   │   ├── 01_create_h3_grids.py            # Generate H3 hexagonal grids for cities
+│   │   ├── 01b_create_h3_grids_nudged.py    # Shifted grids for MAUP sensitivity
+│   │   ├── 02_extract_roads_neighborhood.py # Road extraction with exactextract
+│   │   ├── 02b_extract_roads_clean.py       # Improved road extraction with lane widths
+│   │   ├── 03_extract_volume_pavement.py    # Single-city extraction (synchronous)
+│   │   ├── 03_run_extraction.py             # Dispatcher for extraction approaches
+│   │   ├── 03a_submit_batch_exports.py      # GEE batch export submission
+│   │   ├── 03a_submit_batch_exports_nudged.py # GEE batch export for nudged grids
+│   │   ├── 03b_monitor_batch_tasks.py       # Monitor GEE task completion
+│   │   ├── 03c_download_batch_results.py    # Download and merge GEE results
+│   │   ├── 04_merge_building_road_data.py   # Merge building volume and road data
+│   │   ├── 05_prep_global_mass_neighborhood.py # Convert volumes to material mass
+│   │   ├── 06_estimate_neighborhood_zipf.py # Zipf exponent for city population distributions
+│   │   ├── 07_simulate_scaling.py           # Monte Carlo: δ + Zipf s → β
+│   │   ├── 08_compare_beta_boxplot.py       # Observed vs simulated β comparison
+│   │   ├── 09_generate_fig3.Rmd             # Neighborhood scaling figure (R Markdown)
+│   │   ├── 09b_compare_scaling_resolutions.R # Compare scaling across resolutions
+│   │   ├── 09c_multiresolution_scaling_analysis.R # Multi-resolution analysis
+│   │   ├── 10_generate_fig4.py              # Figure 4 assembly
+│   │   ├── extract_santa_fe_gba_mi.py       # GBA building-level MI extraction for Santa Fe
+│   │   ├── Fig1_DataPrep_GlobalMass_MergedMI_.Rmd  # City-level mass data preparation
+│   │   ├── Fig1_DataPrep_HistTrend.Rmd      # Historical trend data preparation
+│   │   ├── Fig1_DataPrep_SourceVariability.qmd # Source variability analysis (Quarto)
+│   │   ├── Fig1_GlobalMass_Stats.Rmd        # Global mass statistics
+│   │   ├── Fig1_GlobalMassboxplot_Assemble_MIUpdate.Rmd # Figure 1 assembly
+│   │   ├── Fig2_UniversalScaling_MIUpdated.Rmd # City-level scaling (R Markdown)
+│   │   ├── Fig3_NeighborhoodScaling_UpdateMI.Rmd # Neighborhood scaling (R Markdown)
+│   │   ├── process_santa_fe.py              # Santa Fe city data pipeline
+│   │   ├── validate_h3_hierarchical_consistency.py # Validate H3 grid hierarchy
+│   │   ├── gee_demo/                        # Google Earth Engine demo
+│   │   │   └── gee_sample_r6.py             # Demo extraction for single city at R6
+│   │   ├── sensitivity/                     # Original mixed-effects sensitivity analyses
+│   │   │   ├── 05_sensitivity_random_datasource.R  # Random data source selection
+│   │   │   ├── 06_weighted_reliability_means.R     # Reliability-weighted averaging
+│   │   │   ├── 07_MI_sensitivity_3tier.R           # Three-tier MI sensitivity
+│   │   │   └── calculate_CI_exact_reproduction.py  # CI exact reproduction
+│   │   └── utils/                           # Shared utilities
+│   │       └── paths.py                     # Path configuration utilities
+│   └── scaling_analysis/                    # Revised scaling analysis (de-centering approach)
+│       ├── Fig1_GlobalMass_Stats.R          # Global mass summary statistics
+│       ├── Fig1_HybridBoxplot.R             # Figure 1 hybrid boxplot
+│       ├── Fig2_UniversalScaling_Decentered.R             # City-level scaling (main)
+│       ├── Fig2_UniversalScaling_Decentered_MI_sensitivity.R    # City MI sensitivity
+│       ├── Fig2_UniversalScaling_Decentered_Source_Sensitivity.R # City data source sensitivity
+│       ├── Fig2_UniversalScaling_Decentered_Weighted_Source.R    # Reliability-weighted averaging
+│       ├── Fig2_UniversalScaling_Decentered_WithSubwayMass.R    # City-level with subway mass
+│       ├── Fig2_UniversalScaling_MixedEffects.R                 # Mixed-effects comparison
+│       ├── Fig3_ExtendedData_CityLines.R                  # Extended Data: all city OLS lines
+│       ├── Fig3_NeighborhoodScaling_Decentered.R                    # Neighborhood scaling (main)
+│       ├── Fig3_NeighborhoodScaling_Decentered_DensityPanels.R      # Density panel visualization
+│       ├── Fig3_NeighborhoodScaling_Decentered_Multiscale.R         # H3 R5/R6/R7 scaling
+│       ├── Fig3_NeighborhoodScaling_Decentered_Multiscale_MI_sensitivity.R # Multiscale MI sensitivity
+│       ├── Fig3_NeighborhoodScaling_Decentered_Multiscale_NoFilter.R      # Multiscale without filtering
+│       ├── Fig3_NeighborhoodScaling_Decentered_Multiscale_R6Filter.R      # Multiscale with R6 filter
+│       ├── Fig3_NeighborhoodScaling_Decentered_Multiscale_R6Filter_WithSubwayMass.R # R6 filter + subway
+│       ├── Fig3_NeighborhoodScaling_Decentered_NudgeSensitivity.R   # Grid placement sensitivity
+│       ├── Fig3_NeighborhoodScaling_Decentered_R6_Source_Sensitivity.R # R6 data source sensitivity
+│       ├── Fig3_NeighborhoodScaling_Decentered_R7.R                 # Resolution 7 analysis
+│       ├── Fig3_NeighborhoodScaling_Decentered_R7_MI_sensitivity.R  # R7 MI sensitivity
+│       ├── Fig3_NeighborhoodScaling_Decentered_R7_NudgeSensitivity.R # R7 grid nudge
+│       ├── Fig3_NeighborhoodScaling_Decentered_R7_Source_Sensitivity.R # R7 source sensitivity
+│       ├── Fig3_NeighborhoodScaling_Decentered_R7_Weighted_Source.R    # R7 weighted source
+│       ├── Fig3_NeighborhoodScaling_Decentered_R7_WithSubwayMass.R    # R7 with subway mass
+│       ├── Fig3_NeighborhoodScaling_Decentered_Source_Sensitivity.R    # Neighborhood source sensitivity
+│       ├── Fig3_NeighborhoodScaling_Original.R                  # Original (pre-decentering) analysis
+│       ├── Fig3_NeighborhoodScaling_Original_Multiscale.R       # Original multiscale analysis
+│       ├── Fig3_R7_city_candidates.R          # Per-city slope analysis (R7)
+│       ├── Fig3_R7_city_candidates_v2.R       # Per-city slope analysis v2
+│       ├── Fig3_SizeClass.R                   # City size class analysis
+│       ├── Fig4_Simulation_Decentered.py      # Simulation with de-centered approach
+│       ├── Fig4_conceptual_zipf_disparity.py  # Conceptual Zipf disparity figure
+│       ├── Fig4_conceptual_zipf_separate.py   # Conceptual Zipf separate panels
+│       ├── extract_subway_mass_by_hexagon.py  # Subway mass extraction per hexagon
+│       ├── osm_subway_download.py             # Download subway networks from OSM
+│       ├── export_pop_lt_1_neighborhoods.R    # Export neighborhoods with pop < 1
+│       ├── test_lognormal_simulation.py       # Lognormal simulation tests
+│       ├── test_rank_correlation.py           # Rank correspondence and permutation tests
+│       ├── test_zipf_vs_lognormal.py          # Power-law vs lognormal (Clauset-Shalizi-Newman)
+│       ├── test_zipf_vs_lognormal_percity_CSN.py # Per-city Zipf vs lognormal tests
+│       ├── US_subset_scaling_Frantz_comparison.py # US subset comparison with Frantz et al.
+│       └── web_prep/                          # Scripts to prepare data for the website
+│           ├── compute_regressions.py         # OLS slopes with 95% CIs
+│           ├── download_countries_geojson.py  # Country boundary GeoJSON
+│           ├── pack_hex_to_zip.py             # Pack hexagon data to zip
+│           ├── prep_city_aggregates.py        # City summaries per country
+│           ├── prep_neighborhood_subsamples.py # Stratified subsamples for scatter plots
+│           ├── split_city_hex_feeds.py        # Per-city H3 hex feeds
+│           └── unzip_webdata.sh               # Unzip web data archives
+├── config/                                    # Path configuration
+│   ├── __init__.py
+│   └── paths.py                               # Multi-environment path configuration
+├── data/                                      # Data files (not tracked in git)
+│   └── processed/
+│       └── h3_resolution{N}/                  # Processed H3 hexagon data by resolution
+├── tests/                                     # Pipeline validation tests
+│   ├── run_pipeline_tests.py                  # Test runner
+│   ├── test_extract_nyc_pois.py               # NYC POI extraction test
+│   └── verify_poi_data.py                     # POI data verification
+├── web/                                       # Interactive web explorer
+│   ├── vite.config.js                         # Vite build configuration
+│   ├── src/
+│   │   ├── config.js                          # App configuration
+│   │   ├── main.jsx                           # Application entry point
+│   │   └── ui/
+│   │       ├── App.jsx                        # Main application component
+│   │       ├── CityPanel.jsx                  # City-level scatter panel
+│   │       ├── MapView.jsx                    # MapLibre + deck.gl map
+│   │       ├── NeighborhoodPanel.jsx          # Neighborhood scatter panel
+│   │       ├── styles.css                     # Application styles
+│   │       └── useTheme.js                    # Theme hook
+│   └── public/webdata/                        # Static JSON data for the website
+│       ├── cities_agg/                        # City-level aggregates by country
+│       ├── hex/                               # Per-city H3 hexagon feeds
+│       ├── regression/                        # OLS regression parameters
+│       ├── scatter_samples/                   # Subsampled scatter plot data
+│       └── index/                             # City metadata and search indices
+└── .github/
+    └── workflows/
+        └── deploy.yml                         # GitHub Pages deployment
+```
 
 ---
 
@@ -410,19 +458,23 @@ group_by(ID_HDC_G0) %>%
 lm(log_mass_c ~ log_pop_c, data = pooled)
 ```
 
-This is algebraically equivalent to the within-group fixed-effects estimator (Frisch-Waugh-Lovell theorem) and produces virtually identical results to the mixed-effects approach.
+This is algebraically equivalent to the within-group fixed-effects estimator (Frisch-Waugh-Lovell theorem) and produces virtually identical results to the mixed-effects approach (see `Fig2_UniversalScaling_MixedEffects.R` for comparison).
 
 ### Stage 6: Figures and Simulation
 
 | Script | Output |
 |--------|--------|
-| `Fig1_GlobalMassboxplot_Assemble_MIUpdate.Rmd` | **Figure 1:** Global mass overview with boxplots and historical trend |
+| `Fig1_HybridBoxplot.R` | **Figure 1:** Global mass overview with hybrid boxplot |
 | `Fig2_UniversalScaling_Decentered.R` | **Figure 2:** City-level scaling (pop vs mass scatter with OLS) |
 | `Fig3_NeighborhoodScaling_Decentered.R` | **Figure 3:** Neighborhood-level scaling |
+| `Fig3_NeighborhoodScaling_Decentered_DensityPanels.R` | **Figure 3 (density):** Neighborhood scaling with density panels |
+| `Fig4_Simulation_Decentered.py` | **Figure 4:** Simulation with de-centered approach |
 | `06_estimate_neighborhood_zipf.py` | Zipf exponent (s) for each city's population distribution |
 | `07_simulate_scaling.py` | Monte Carlo simulation: neighborhood δ + Zipf s → predicted city β |
 | `08_compare_beta_boxplot.py` | Observed vs simulated β comparison |
 | `10_generate_fig4.py` | **Figure 4:** Assembly of Zipf, simulation, and comparison panels |
+| `Fig4_conceptual_zipf_disparity.py` | Conceptual Zipf disparity illustration |
+| `Fig4_conceptual_zipf_separate.py` | Conceptual Zipf separate panel illustration |
 
 ---
 
@@ -436,9 +488,12 @@ Tests whether the choice among three independent building volume datasets affect
 
 | Script | What it tests |
 |--------|---------------|
-| `Fig2_*_Source_Sensitivity.R` | City β with each source individually + random selection (100 iterations) |
-| `Fig3_*_Source_Sensitivity.R` | Neighborhood δ with each source individually |
-| `Fig2_*_Weighted_Source.R` | Reliability-weighted averaging across sources |
+| `Fig2_UniversalScaling_Decentered_Source_Sensitivity.R` | City β with each source individually + random selection (100 iterations) |
+| `Fig3_NeighborhoodScaling_Decentered_Source_Sensitivity.R` | Neighborhood δ with each source individually |
+| `Fig3_NeighborhoodScaling_Decentered_R6_Source_Sensitivity.R` | R6 neighborhood source sensitivity |
+| `Fig3_NeighborhoodScaling_Decentered_R7_Source_Sensitivity.R` | R7 neighborhood source sensitivity |
+| `Fig2_UniversalScaling_Decentered_Weighted_Source.R` | Reliability-weighted averaging across sources |
+| `Fig3_NeighborhoodScaling_Decentered_R7_Weighted_Source.R` | R7 weighted source averaging |
 
 **Result:** City β range = 0.024 (0.892–0.916). All sublinear regardless of source.
 
@@ -448,8 +503,9 @@ Tests three MI frameworks: global average, Haberl 5-region, Fishman 32-region RA
 
 | Script | Level |
 |--------|-------|
-| `Fig2_*_MI_sensitivity.R` | City-level |
-| `Fig3_*_MI_sensitivity.R` / `*_Multiscale_MI_sensitivity.R` | Neighborhood-level |
+| `Fig2_UniversalScaling_Decentered_MI_sensitivity.R` | City-level |
+| `Fig3_NeighborhoodScaling_Decentered_Multiscale_MI_sensitivity.R` | Neighborhood-level (multiscale) |
+| `Fig3_NeighborhoodScaling_Decentered_R7_MI_sensitivity.R` | Neighborhood-level (R7) |
 
 **Result:** β range = 0.004 (negligible). MI is multiplicative and absorbed by de-centering.
 
@@ -461,8 +517,9 @@ Tests whether omitting subway infrastructure biases the exponent.
 |--------|---------|
 | `extract_subway_mass_by_hexagon.py` | Extract subway mass from CPTOND-2025 (China) + OSM (global) |
 | `osm_subway_download.py` | Download subway networks from OpenStreetMap |
-| `Fig2_*_WithSubwayMass.R` | City-level with subway mass added |
-| `Fig3_*_WithSubwayMass.R` | Neighborhood-level with subway mass added |
+| `Fig2_UniversalScaling_Decentered_WithSubwayMass.R` | City-level with subway mass added |
+| `Fig3_NeighborhoodScaling_Decentered_Multiscale_R6Filter_WithSubwayMass.R` | Neighborhood-level (R6) with subway mass |
+| `Fig3_NeighborhoodScaling_Decentered_R7_WithSubwayMass.R` | Neighborhood-level (R7) with subway mass |
 
 **Result:** Δβ = +0.003, Δδ = +0.001. Underground infrastructure accounts for < 1% of total mass.
 
@@ -472,8 +529,11 @@ Tests sensitivity to H3 hexagon resolution and MAUP (Modifiable Areal Unit Probl
 
 | Script | What it tests |
 |--------|---------------|
-| `Fig3_*_Multiscale_R6Filter.R` | δ across H3 Resolutions 5, 6, 7 |
-| `Fig3_*_NudgeSensitivity.R` | δ with grid shifted 1 km N/S/E/W |
+| `Fig3_NeighborhoodScaling_Decentered_Multiscale.R` | δ across H3 Resolutions 5, 6, 7 |
+| `Fig3_NeighborhoodScaling_Decentered_Multiscale_R6Filter.R` | δ with R6 filter |
+| `Fig3_NeighborhoodScaling_Decentered_Multiscale_NoFilter.R` | δ without neighborhood filtering |
+| `Fig3_NeighborhoodScaling_Decentered_NudgeSensitivity.R` | δ with grid shifted 1 km N/S/E/W |
+| `Fig3_NeighborhoodScaling_Decentered_R7_NudgeSensitivity.R` | R7 nudge sensitivity |
 
 **Result:** δ decreases monotonically with finer resolution (0.826 → 0.751 → 0.713 for R5 → R6 → R7). Nudging produces max deviation of 0.003.
 
@@ -482,6 +542,8 @@ Tests sensitivity to H3 hexagon resolution and MAUP (Modifiable Areal Unit Probl
 | Script | What it tests |
 |--------|---------------|
 | `test_zipf_vs_lognormal.py` | Power-law vs lognormal vs truncated power-law (Clauset-Shalizi-Newman framework) |
+| `test_zipf_vs_lognormal_percity_CSN.py` | Per-city Zipf vs lognormal tests |
+| `test_lognormal_simulation.py` | Lognormal simulation tests |
 | `test_rank_correlation.py` | Rank correspondence and permutation tests |
 
 **Result:** Power law strongly preferred over lognormal (Vuong R = 28.9 for population, p < 0.001).
@@ -491,9 +553,21 @@ Tests sensitivity to H3 hexagon resolution and MAUP (Modifiable Areal Unit Probl
 | Script | Output |
 |--------|--------|
 | `Fig3_ExtendedData_CityLines.R` | Extended Data figure overlaying all 3,312 city OLS lines |
-| `Fig3_R7_city_candidates*.R` | Per-city slope analysis and candidate identification |
+| `Fig3_R7_city_candidates.R` | Per-city slope analysis and candidate identification |
+| `Fig3_R7_city_candidates_v2.R` | Per-city slope analysis v2 |
 
 **Result:** 99.97% of cities (3,311/3,312) have positive scaling slopes.
+
+### Additional Analyses
+
+| Script | What it tests |
+|--------|---------------|
+| `Fig3_NeighborhoodScaling_Original.R` | Original (pre-decentering) neighborhood scaling |
+| `Fig3_NeighborhoodScaling_Original_Multiscale.R` | Original multiscale analysis |
+| `Fig3_SizeClass.R` | City size class analysis |
+| `Fig2_UniversalScaling_MixedEffects.R` | Mixed-effects model comparison |
+| `US_subset_scaling_Frantz_comparison.py` | US subset comparison with Frantz et al. |
+| `export_pop_lt_1_neighborhoods.R` | Export neighborhoods with population < 1 |
 
 ---
 
@@ -527,6 +601,8 @@ Scripts in `scripts/scaling_analysis/web_prep/` transform the analysis outputs i
 | `compute_regressions.py` | OLS slopes with 95% CIs and decentered anchors |
 | `split_city_hex_feeds.py` | Per-city H3 hex feeds for map rendering |
 | `download_countries_geojson.py` | Country boundary GeoJSON |
+| `pack_hex_to_zip.py` | Pack hexagon data to zip archives |
+| `unzip_webdata.sh` | Unzip web data archives |
 
 ### Website Stack
 
@@ -555,7 +631,22 @@ Regression lines use: `y = y0 + slope * (x - x0)`. All logs are base-10; populat
 
 ---
 
-## Instructions for Use
+## Reproducing Results
+
+### Quick Start (figures only, requires processed data)
+
+```bash
+# City-level scaling (Figure 2)
+cd scripts/scaling_analysis
+Rscript Fig2_UniversalScaling_Decentered.R
+
+# Neighborhood-level scaling (Figure 3)
+Rscript Fig3_NeighborhoodScaling_Decentered.R
+
+# Simulation analysis (Figure 4)
+cd ../data_pipeline
+python 10_generate_fig4.py
+```
 
 ### Full Pipeline (requires GEE authentication and raw data)
 
@@ -630,4 +721,4 @@ If you use this code or data, please cite:
 
 ## License
 
-This project is shared for research reproducibility. Please contact the authors for commercial use.
+This project is licensed under the **MIT License** — see [LICENSE](LICENSE) for details. This is an [OSI-approved](https://opensource.org/licenses/) open source license that permits reuse, modification, and distribution for both academic and commercial purposes.
