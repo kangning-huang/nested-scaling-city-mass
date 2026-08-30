@@ -1,9 +1,12 @@
-# Root-level folders to exclude
+# Local analysis leftovers (code/data live on Figshare)
 archive/
 data/
 docs/
 figures/
 results/
+scripts/
+tests/
+config/
 *.gdoc
 *.docx
 *.pdf
@@ -16,12 +19,15 @@ node_modules/
 
 # Generated / heavy artifacts
 rosm.cache/
-*.geojson
 *.gpkg
 *.csv
 *.tmp
 *.temp
 *.bak
+
+# Keep website GeoJSON tracked
+*.geojson
+!web/public/webdata/countries.geojson
 
 # OS / editor / tooling noise
 .DS_Store
@@ -73,11 +79,3 @@ env/
 # Jupyter notebooks
 .ipynb_checkpoints/
 *.ipynb_checkpoints
-
-# Tests artifacts
-tests/cache/
-tests/sample_data/
-tests/expected_outputs/
-tests/*.gpkg
-tests/*.csv
-!tests/pipeline_tests/
