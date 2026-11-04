@@ -2,7 +2,7 @@
 
 This repository hosts the interactive explorer for:
 
-> Huang, K. & Lu, M. Nested economies of scale in global city mass. *Nature Cities* (accepted). Preprint: [arXiv:2507.03960](https://arxiv.org/abs/2507.03960)
+> Huang, K. & Lu, M. Nested economies of scale in global city mass. *Nature Cities* (2026). [doi:10.1038/s44284-026-00532-x](https://doi.org/10.1038/s44284-026-00532-x)
 
 **Live site:** [https://city-mass.nested-complexity.net](https://city-mass.nested-complexity.net)
 
